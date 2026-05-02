@@ -5,6 +5,7 @@ export function getRouter() {
   const router = createRouter({
     routeTree,
     scrollRestoration: true,
+    basepath: "/asciinema-wterm-viewer",
   });
 
   return router;

@@ -6,6 +6,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import "~/styles/globals.css";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -20,12 +21,6 @@ export const Route = createRootRoute({
         name: "description",
         content:
           "A modern terminal session recording player powered by wterm",
-      },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: "/src/styles/globals.css",
       },
     ],
   }),
