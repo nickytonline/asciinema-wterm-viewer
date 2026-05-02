@@ -16,8 +16,10 @@ import { PlayerOverlay } from "./PlayerOverlay";
 import { useKeyboardShortcuts } from "~/lib/use-keyboard-shortcuts";
 
 export interface AsciinemaPlayerProps {
-  /** URL or inline string of an asciicast recording (.cast file) */
-  src: string;
+  /** URL of an asciicast recording (.cast/.asciicast file) */
+  src?: string;
+  /** Raw recording content as a string (alternative to src URL) */
+  content?: string;
   /** Fit mode: "width" | "height" | "both" | "none" */
   fit?: "width" | "height" | "both" | "none";
   /** Auto-start playback */
@@ -46,6 +48,7 @@ type LoadState = "idle" | "loading" | "ready" | "error";
 
 export function AsciinemaPlayer({
   src,
+  content,
   fit = "width",
   autoPlay = false,
   loop = false,
@@ -84,21 +87,32 @@ export function AsciinemaPlayer({
 
   // Load recording
   useEffect(() => {
+    const source = content ?? src ?? "";
+    if (source === "") return;
+
     let cancelled = false;
+
+    // Destroy previous engine on source change
+    if (engineRef.current) {
+      engineRef.current.destroy();
+      engineRef.current = null;
+    }
 
     async function load() {
       setLoadState("loading");
+      setPlaybackState("idle");
+      setCurrentTime(0);
 
       try {
         let data: string | Response;
 
-        if (src.startsWith("http://") || src.startsWith("https://") || src.startsWith("/")) {
-          data = await fetch(src);
+        if (!content && (source.startsWith("http://") || source.startsWith("https://") || source.startsWith("/"))) {
+          data = await fetch(source);
           if (!(data as Response).ok) {
             throw new Error(`Failed to fetch: ${(data as Response).status}`);
           }
         } else {
-          data = src;
+          data = source;
         }
 
         if (cancelled) return;
@@ -129,7 +143,7 @@ export function AsciinemaPlayer({
     return () => {
       cancelled = true;
     };
-  }, [src, idleTimeLimit]);
+  }, [src, content, idleTimeLimit]);
 
   // Initialize engine when terminal is ready
   const onTerminalReady = useCallback((_wt: unknown) => {

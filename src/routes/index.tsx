@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
+import { Upload } from "lucide-react";
 import { AsciinemaPlayer } from "~/components/AsciinemaPlayer";
 
 export const Route = createFileRoute("/")({
@@ -11,7 +12,64 @@ const DEMO_RECORDING_URL =
 
 function HomePage() {
   const [url, setUrl] = useState(DEMO_RECORDING_URL);
+  const [fileContent, setFileContent] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [inputUrl, setInputUrl] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const loadFile = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result;
+      if (typeof text === "string") {
+        setFileContent(text);
+        setFileName(file.name);
+        setUrl("");
+      }
+    };
+    reader.readAsText(file);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragging(false);
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        loadFile(file);
+      }
+    },
+    [loadFile],
+  );
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        loadFile(file);
+      }
+    },
+    [loadFile],
+  );
+
+  const handleLoadUrl = useCallback(() => {
+    if (inputUrl.trim()) {
+      setUrl(inputUrl.trim());
+      setFileContent(null);
+      setFileName(null);
+    }
+  }, [inputUrl]);
 
   return (
     <div className="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 p-6">
@@ -33,31 +91,62 @@ function HomePage() {
         </p>
       </header>
 
-      {/* URL input */}
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={inputUrl}
-          onChange={(e) => setInputUrl(e.target.value)}
-          placeholder="Paste a .cast file URL..."
-          className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white placeholder:text-white/30 focus:border-emerald-400/50 focus:outline-none focus:ring-1 focus:ring-emerald-400/50"
-        />
-        <button
-          type="button"
-          onClick={() => {
-            if (inputUrl.trim()) {
-              setUrl(inputUrl.trim());
-            }
-          }}
-          className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600"
+      {/* Load controls */}
+      <div className="flex flex-col gap-3">
+        {/* Drop zone / file picker */}
+        <div
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onClick={() => fileInputRef.current?.click()}
+          className={`flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-4 text-sm transition-colors ${
+            isDragging
+              ? "border-emerald-400 bg-emerald-400/10 text-emerald-400"
+              : "border-white/20 bg-white/5 text-white/50 hover:border-white/40 hover:text-white/70"
+          }`}
         >
-          Load
-        </button>
+          <Upload size={18} />
+          <span>
+            {fileName
+              ? `Loaded: ${fileName}`
+              : "Drop a .cast or .asciicast file here, or click to browse"}
+          </span>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".cast,.asciicast"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+        </div>
+
+        {/* URL input */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-white/40">or</span>
+          <input
+            type="text"
+            value={inputUrl}
+            onChange={(e) => setInputUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleLoadUrl();
+            }}
+            placeholder="Paste a .cast file URL..."
+            className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white placeholder:text-white/30 focus:border-emerald-400/50 focus:outline-none focus:ring-1 focus:ring-emerald-400/50"
+          />
+          <button
+            type="button"
+            onClick={handleLoadUrl}
+            className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600"
+          >
+            Load URL
+          </button>
+        </div>
       </div>
 
       {/* Player */}
       <AsciinemaPlayer
-        src={url}
+        src={fileContent ? undefined : url}
+        content={fileContent ?? undefined}
         fit="width"
         controls="auto"
         theme="default"
