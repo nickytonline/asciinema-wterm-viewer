@@ -6,6 +6,7 @@ import {
   type CSSProperties,
 } from "react";
 import { Terminal, type TerminalHandle } from "@wterm/react";
+import { GhosttyCore } from "@wterm/ghostty";
 import { PlaybackEngine, type PlaybackState } from "~/lib/playback-engine";
 import {
   parseAsciicast,
@@ -71,6 +72,7 @@ export function AsciinemaPlayer({
 
   const [loadState, setLoadState] = useState<LoadState>("idle");
   const [sourceKey, setSourceKey] = useState(0);
+  const [ghosttyCore, setGhosttyCore] = useState<GhosttyCore | null>(null);
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle");
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -90,6 +92,15 @@ export function AsciinemaPlayer({
   const controlsVisible =
     controls === true ||
     (controls === "auto" && (userActive || playbackState !== "playing"));
+
+  // Load GhosttyCore on mount
+  useEffect(() => {
+    let cancelled = false;
+    GhosttyCore.load().then((core) => {
+      if (!cancelled) setGhosttyCore(core);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   // Load recording
   useEffect(() => {
@@ -386,6 +397,7 @@ export function AsciinemaPlayer({
             ref={terminalRef}
             cols={displayCols}
             rows={termRows}
+            core={ghosttyCore ?? undefined}
             theme={theme || undefined}
             cursorBlink={false}
             autoResize={false}
