@@ -67,6 +67,7 @@ export function AsciinemaPlayer({
   const recordingRef = useRef<ParsedRecording | null>(null);
 
   const [loadState, setLoadState] = useState<LoadState>("idle");
+  const [sourceKey, setSourceKey] = useState(0);
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle");
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -98,10 +99,12 @@ export function AsciinemaPlayer({
       engineRef.current = null;
     }
 
+    setLoadState("loading");
+    setPlaybackState("idle");
+    setCurrentTime(0);
+    setSourceKey((k) => k + 1);
+
     async function load() {
-      setLoadState("loading");
-      setPlaybackState("idle");
-      setCurrentTime(0);
 
       try {
         let data: string | Response;
@@ -367,6 +370,7 @@ export function AsciinemaPlayer({
       >
         {loadState === "ready" && (
           <Terminal
+            key={sourceKey}
             ref={terminalRef}
             cols={termCols}
             rows={termRows}
