@@ -1,8 +1,15 @@
 .DS_Store
 /node_modules
 /dist
-/public
 /.direnv
 /.envrc
 /test-results
 /playwright-report
+.vinxi/
+.output/
+.vercel/
+.nitro/
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local

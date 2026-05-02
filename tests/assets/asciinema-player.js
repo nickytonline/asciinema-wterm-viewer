@@ -1,1 +1,0 @@
-../../dist/bundle/asciinema-player.js
