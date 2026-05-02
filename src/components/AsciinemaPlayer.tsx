@@ -185,7 +185,7 @@ export function AsciinemaPlayer({
     });
 
     engine.on("reset", () => {
-      terminalRef.current?.write("\x1bc");
+      terminalRef.current?.write("\x1bc\x1b[2J\x1b[H");
     });
 
     engine.on("resize", ({ cols, rows }) => {
