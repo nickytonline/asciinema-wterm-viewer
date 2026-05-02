@@ -150,7 +150,7 @@ function HomePage() {
         fit="width"
         controls="auto"
         theme="default"
-        fontSize={14}
+        fontSize={16}
         style={{ maxWidth: "100%" }}
       />
 

@@ -4,11 +4,15 @@ import {
   Pause,
   Maximize,
   Minimize,
+  AArrowUp,
+  Columns3,
 } from "lucide-react";
 import { formatTime, throttle } from "~/lib/utils";
 import type { Marker } from "~/lib/playback-engine";
 
 const SPEED_OPTIONS = [0.5, 1, 1.5, 2, 4, 8];
+const FONT_SIZE_OPTIONS = [16, 18, 20, 24, 28, 32];
+const COLS_OPTIONS = [80, 120, 160, 200];
 
 interface ControlBarProps {
   visible: boolean;
@@ -23,6 +27,10 @@ interface ControlBarProps {
   onSeek: (time: number) => void;
   onSeekPercent: (percent: number) => void;
   onSpeedChange: (speed: number) => void;
+  fontSize: number;
+  onFontSizeChange: (size: number) => void;
+  displayCols: number;
+  onDisplayColsChange: (cols: number) => void;
   onToggleFullscreen: () => void;
 }
 
@@ -39,12 +47,18 @@ export function ControlBar({
   onSeek,
   onSeekPercent,
   onSpeedChange,
+  fontSize,
+  onFontSizeChange,
+  displayCols,
+  onDisplayColsChange,
   onToggleFullscreen,
 }: ControlBarProps) {
   const barRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [showRemaining, setShowRemaining] = useState(false);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [showFontMenu, setShowFontMenu] = useState(false);
+  const [showColsMenu, setShowColsMenu] = useState(false);
 
   const throttledSeek = useRef(
     throttle((pct: number) => onSeekPercent(pct), 50),
@@ -198,6 +212,80 @@ export function ControlBar({
                 }`}
               >
                 {s}x
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Font size control */}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setShowFontMenu((v) => !v)}
+          onBlur={() => setTimeout(() => setShowFontMenu(false), 150)}
+          className="flex h-6 shrink-0 items-center justify-center gap-0.5 rounded px-1.5 text-xs text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+          aria-label="Font size"
+          title="Font size"
+        >
+          <AArrowUp size={14} />
+          <span className="font-mono">{fontSize}</span>
+        </button>
+
+        {showFontMenu && (
+          <div className="absolute bottom-full right-0 mb-1 rounded-lg border border-white/10 bg-zinc-900 py-1 shadow-xl">
+            {FONT_SIZE_OPTIONS.map((s) => (
+              <button
+                type="button"
+                key={s}
+                onClick={() => {
+                  onFontSizeChange(s);
+                  setShowFontMenu(false);
+                }}
+                className={`block w-full px-4 py-1 text-left font-mono text-xs transition-colors ${
+                  s === fontSize
+                    ? "bg-emerald-400/20 text-emerald-400"
+                    : "text-white/70 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                {s}px
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Columns control */}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setShowColsMenu((v) => !v)}
+          onBlur={() => setTimeout(() => setShowColsMenu(false), 150)}
+          className="flex h-6 shrink-0 items-center justify-center gap-0.5 rounded px-1.5 text-xs text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+          aria-label="Column width"
+          title="Column width"
+        >
+          <Columns3 size={14} />
+          <span className="font-mono">{displayCols}</span>
+        </button>
+
+        {showColsMenu && (
+          <div className="absolute bottom-full right-0 mb-1 rounded-lg border border-white/10 bg-zinc-900 py-1 shadow-xl">
+            {COLS_OPTIONS.map((c) => (
+              <button
+                type="button"
+                key={c}
+                onClick={() => {
+                  onDisplayColsChange(c);
+                  setShowColsMenu(false);
+                }}
+                className={`block w-full px-4 py-1 text-left font-mono text-xs transition-colors ${
+                  c === displayCols
+                    ? "bg-emerald-400/20 text-emerald-400"
+                    : "text-white/70 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                {c} cols
               </button>
             ))}
           </div>

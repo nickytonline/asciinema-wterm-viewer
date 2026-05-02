@@ -36,6 +36,8 @@ export interface AsciinemaPlayerProps {
   theme?: string;
   /** Terminal font size in px */
   fontSize?: number;
+  /** Display column width (overrides recording's cols, default 120) */
+  cols?: number;
   /** Show controls */
   controls?: boolean | "auto";
   /** Additional class name */
@@ -56,7 +58,8 @@ export function AsciinemaPlayer({
   idleTimeLimit,
   posterTime,
   theme,
-  fontSize = 14,
+  fontSize: fontSizeProp = 16,
+  cols: displayColsProp = 120,
   controls = true,
   className,
   style,
@@ -71,8 +74,10 @@ export function AsciinemaPlayer({
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle");
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [termCols, setTermCols] = useState(80);
+  const [recordingCols, setRecordingCols] = useState(80);
   const [termRows, setTermRows] = useState(24);
+  const [displayCols, setDisplayCols] = useState(displayColsProp);
+  const [fontSize, setFontSize] = useState(fontSizeProp);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [scale, setScale] = useState(1);
   const [userActive, setUserActive] = useState(false);
@@ -127,7 +132,7 @@ export function AsciinemaPlayer({
         }
 
         recordingRef.current = recording;
-        setTermCols(recording.cols);
+        setRecordingCols(recording.cols);
         setTermRows(recording.rows);
         setDuration(recording.duration);
         setLoadState("ready");
@@ -173,9 +178,8 @@ export function AsciinemaPlayer({
     });
 
     engine.on("resize", ({ cols, rows }) => {
-      setTermCols(cols);
+      setRecordingCols(cols);
       setTermRows(rows);
-      terminalRef.current?.resize(cols, rows);
     });
 
     engine.on("stateChange", (state) => {
@@ -259,7 +263,7 @@ export function AsciinemaPlayer({
       for (const entry of entries) {
         const containerW = entry.contentRect.width;
         const containerH = entry.contentRect.height;
-        const termW = charW * termCols + borderPadding;
+        const termW = charW * displayCols + borderPadding;
         const termH = charH * termRows + borderPadding;
 
         let newScale = 1;
@@ -283,7 +287,7 @@ export function AsciinemaPlayer({
 
     observer.observe(wrapperRef.current);
     return () => observer.disconnect();
-  }, [fit, fontSize, termCols, termRows, isFullscreen]);
+  }, [fit, fontSize, displayCols, termRows, isFullscreen]);
 
   // User activity tracking
   const onMouseMove = useCallback(() => {
@@ -314,6 +318,14 @@ export function AsciinemaPlayer({
     if (engineRef.current) {
       engineRef.current.speed = newSpeed;
     }
+  }, []);
+
+  const handleFontSizeChange = useCallback((newSize: number) => {
+    setFontSize(newSize);
+  }, []);
+
+  const handleDisplayColsChange = useCallback((newCols: number) => {
+    setDisplayCols(newCols);
   }, []);
 
   const handleToggleFullscreen = useCallback(() => {
@@ -372,7 +384,7 @@ export function AsciinemaPlayer({
           <Terminal
             key={sourceKey}
             ref={terminalRef}
-            cols={termCols}
+            cols={displayCols}
             rows={termRows}
             theme={theme || undefined}
             cursorBlink={false}
@@ -411,6 +423,10 @@ export function AsciinemaPlayer({
           onSeek={handleSeek}
           onSeekPercent={handleSeekPercent}
           onSpeedChange={handleSpeedChange}
+          fontSize={fontSize}
+          onFontSizeChange={handleFontSizeChange}
+          displayCols={displayCols}
+          onDisplayColsChange={handleDisplayColsChange}
           onToggleFullscreen={handleToggleFullscreen}
         />
       )}
