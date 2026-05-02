@@ -1,7 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useRef, useCallback } from "react";
-import { Upload } from "lucide-react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { Upload, ImageIcon, RotateCcw } from "lucide-react";
 import { AsciinemaPlayer } from "~/components/AsciinemaPlayer";
+import { GHOSTTY_ASCII_LOGO } from "~/lib/ghostty-logo";
+import {
+  convertFileToAscii,
+  getSavedSplashArt,
+  saveSplashArt,
+  clearSavedSplashArt,
+} from "~/lib/image-to-ascii";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -11,12 +18,46 @@ const DEMO_RECORDING_URL =
   "https://asciinema.org/a/569727.cast?dl=1";
 
 function HomePage() {
-  const [url, setUrl] = useState(DEMO_RECORDING_URL);
+  const [url, setUrl] = useState("");
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [inputUrl, setInputUrl] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const [splashArt, setSplashArt] = useState<string>(GHOSTTY_ASCII_LOGO);
+  const [hasCustomLogo, setHasCustomLogo] = useState(false);
+
+  useEffect(() => {
+    const saved = getSavedSplashArt();
+    if (saved) {
+      setSplashArt(saved);
+      setHasCustomLogo(true);
+    }
+  }, []);
+
+  const handleLogoUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const ascii = await convertFileToAscii(file, 80, 24);
+        setSplashArt(ascii);
+        setHasCustomLogo(true);
+        saveSplashArt(ascii);
+      } catch {
+        // ignore conversion errors
+      }
+      e.target.value = "";
+    },
+    [],
+  );
+
+  const handleResetLogo = useCallback(() => {
+    setSplashArt(GHOSTTY_ASCII_LOGO);
+    setHasCustomLogo(false);
+    clearSavedSplashArt();
+  }, []);
 
   const loadFile = useCallback((file: File) => {
     const reader = new FileReader();
@@ -140,7 +181,47 @@ function HomePage() {
           >
             Load URL
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              setUrl(DEMO_RECORDING_URL);
+              setFileContent(null);
+              setFileName(null);
+            }}
+            className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/70 transition-colors hover:border-white/30 hover:text-white"
+          >
+            Play Demo
+          </button>
         </div>
+      </div>
+
+      {/* Logo controls */}
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => logoInputRef.current?.click()}
+          className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60 transition-colors hover:border-white/30 hover:text-white/80"
+        >
+          <ImageIcon size={14} />
+          Custom splash logo
+        </button>
+        {hasCustomLogo && (
+          <button
+            type="button"
+            onClick={handleResetLogo}
+            className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60 transition-colors hover:border-white/30 hover:text-white/80"
+          >
+            <RotateCcw size={14} />
+            Reset to default
+          </button>
+        )}
+        <input
+          ref={logoInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleLogoUpload}
+          className="hidden"
+        />
       </div>
 
       {/* Player */}
@@ -151,6 +232,7 @@ function HomePage() {
         controls="auto"
         theme="default"
         fontSize={16}
+        splashArt={splashArt}
         style={{ maxWidth: "100%" }}
       />
 

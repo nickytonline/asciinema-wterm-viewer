@@ -6,6 +6,7 @@ import {
   type CSSProperties,
 } from "react";
 import { Terminal, type TerminalHandle } from "@wterm/react";
+import { GhosttyCore } from "@wterm/ghostty";
 import { PlaybackEngine, type PlaybackState } from "~/lib/playback-engine";
 import {
   parseAsciicast,
@@ -40,6 +41,8 @@ export interface AsciinemaPlayerProps {
   cols?: number;
   /** Show controls */
   controls?: boolean | "auto";
+  /** ASCII art to display when no recording is loaded */
+  splashArt?: string;
   /** Additional class name */
   className?: string;
   /** Additional style */
@@ -61,6 +64,7 @@ export function AsciinemaPlayer({
   fontSize: fontSizeProp = 16,
   cols: displayColsProp = 120,
   controls = true,
+  splashArt,
   className,
   style,
 }: AsciinemaPlayerProps) {
@@ -71,6 +75,7 @@ export function AsciinemaPlayer({
 
   const [loadState, setLoadState] = useState<LoadState>("idle");
   const [sourceKey, setSourceKey] = useState(0);
+  const [ghosttyCore, setGhosttyCore] = useState<GhosttyCore | null>(null);
   const [playbackState, setPlaybackState] = useState<PlaybackState>("idle");
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -90,6 +95,15 @@ export function AsciinemaPlayer({
   const controlsVisible =
     controls === true ||
     (controls === "auto" && (userActive || playbackState !== "playing"));
+
+  // Load GhosttyCore on mount
+  useEffect(() => {
+    let cancelled = false;
+    GhosttyCore.load().then((core) => {
+      if (!cancelled) setGhosttyCore(core);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   // Load recording
   useEffect(() => {
@@ -380,12 +394,33 @@ export function AsciinemaPlayer({
           height: fit === "none" ? undefined : `calc((100% - 32px) / ${terminalScale})`,
         }}
       >
+        {loadState === "idle" && splashArt && (
+          <Terminal
+            key="splash"
+            cols={displayCols}
+            rows={termRows}
+            core={ghosttyCore ?? undefined}
+            theme={theme || undefined}
+            cursorBlink={false}
+            autoResize={false}
+            onReady={(wt) => {
+              wt.write(splashArt);
+            }}
+            style={{
+              fontSize: `${fontSize}px`,
+              lineHeight: "1.3333",
+              width: "100%",
+              height: "100%",
+            }}
+          />
+        )}
         {loadState === "ready" && (
           <Terminal
-            key={sourceKey}
+            key={`player-${sourceKey}`}
             ref={terminalRef}
             cols={displayCols}
             rows={termRows}
+            core={ghosttyCore ?? undefined}
             theme={theme || undefined}
             cursorBlink={false}
             autoResize={false}
